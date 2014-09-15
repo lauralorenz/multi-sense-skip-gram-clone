@@ -1,10 +1,9 @@
-// package cc.factorie.app.nlp.embeddings 
 import cc.factorie.util.DoubleAccumulator
 import cc.factorie.la.{DenseTensor1, WeightsMapAccumulator}
 import cc.factorie.optimize.Example
 import scala.collection.mutable
 
-class MSCBOWSkipGramEmbeddingModel(override val opts: EmbeddingOpts) extends MSWordEmbeddingModel(opts) {
+class MultiSenseSkipGramEmbeddingModel(override val opts: EmbeddingOpts) extends MultiSenseWordEmbeddingModel(opts) {
   val negative = opts.negative.value
   val window = opts.window.value
   val rng = new util.Random
@@ -150,7 +149,7 @@ class MSCBOWSkipGramEmbeddingModel(override val opts: EmbeddingOpts) extends MSW
 
 
 
-class MSCBOWSkipGramNegSamplingExample(model: MSWordEmbeddingModel, word: Int, sense : Int, context : Int, label: Int) extends Example {
+class MSCBOWSkipGramNegSamplingExample(model: MultiSenseWordEmbeddingModel, word: Int, sense : Int, context : Int, label: Int) extends Example {
 
   // to understand the gradient and objective refer to : http://arxiv.org/pdf/1310.4546.pdf
   def accumulateValueAndGradient(value: DoubleAccumulator, gradient: WeightsMapAccumulator): Unit = {
@@ -186,4 +185,4 @@ class MSCBOWSkipGramNegSamplingExample(model: MSWordEmbeddingModel, word: Int, s
   }
 }
 
-// TODO: class MSCBOWSkipGramWsabieExample -> Wsabie-style loss
+// TODO: class MSCBOWSkipGramWsabieExample -> Wsabie-style ranking loss

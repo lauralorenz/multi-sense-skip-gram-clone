@@ -1,4 +1,3 @@
-//package cc.factorie.app.nlp.embeddings
 import cc.factorie.model.{Parameters, Weights}
 import cc.factorie.optimize.{Trainer, AdaGradRDA}
 import cc.factorie.la.DenseTensor1
@@ -11,7 +10,7 @@ import java.util.zip.GZIPOutputStream
 import java.io.BufferedOutputStream
 import java.io.FileOutputStream
 
-abstract class MSWordEmbeddingModel(val opts: EmbeddingOpts) extends Parameters {
+abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Parameters {
 
   // Algorithm related
   val D                             = opts.dimension.value           // default value is 200
@@ -43,7 +42,7 @@ abstract class MSWordEmbeddingModel(val opts: EmbeddingOpts) extends Parameters 
   
   // embedding data structures
   protected var vocab: VocabBuilder           = null
-  protected var trainer: LiteHogwildTrainer   = null
+  protected var trainer: HogWildTrainer   = null
   protected var optimizer: AdaGradRDA         = null
   private var corpusLineItr: Iterator[String] = null
   private var train_words: Long               = 0
@@ -120,13 +119,14 @@ abstract class MSWordEmbeddingModel(val opts: EmbeddingOpts) extends Parameters 
   def learnEmbeddings(): Unit = {
     println("Learning Embeddings")
     optimizer     = new AdaGradRDA(delta = adaGradDelta, rate = adaGradRate)
-    sense_weights = (0 until V).map(i => (0 until S).map(j => Weights(TensorUtils.setToRandom1(new DenseTensor1(D, 0))))) // initialized using wordvec random
+    // initialized to random (same manner as in word2vec)
+    sense_weights = (0 until V).map(i => (0 until S).map(j => Weights(TensorUtils.setToRandom1(new DenseTensor1(D, 0))))) 
     if (!opts.bootVectors.value.equals(""))
       load_weights()
     else
-      global_weights = (0 until V).map(i => Weights(TensorUtils.setToRandom1(new DenseTensor1(D, 0)))) // initialized using wordvec random
+      global_weights = (0 until V).map(i => Weights(TensorUtils.setToRandom1(new DenseTensor1(D, 0)))) 
     optimizer.initializeWeights(this.parameters)
-    trainer = new LiteHogwildTrainer(weightsSet = this.parameters, optimizer = optimizer, nThreads = threads, maxIterations = Int.MaxValue)
+    trainer = new HogWildTrainer(weightsSet = this.parameters, optimizer = optimizer, nThreads = threads, maxIterations = Int.MaxValue)
     clusterCount  = Array.ofDim[Int](V, S)
     clusterCenter = Array.ofDim[DenseTensor1](V, S)
     ncluster = Array.ofDim[Int](V)
