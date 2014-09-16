@@ -5,13 +5,18 @@ if [ ! -e text8 ]; then
   unzip text8.zip
 fi
 
+if [ ! -e CP.hack ]; then
+    echo "Run make_cp.sh script first"
+    exit    
+fi
+
 classpath=`cat CP.hack`
 wordvec_app="java -Xmx100g -cp ${classpath} WordVec"
 
-${wordvec_app}  --use-k-means=1 \
-		--sense=2 \
-		--train text8 \
+${wordvec_app}  --train text8 \
 		--output vectors_MSSG.gz \
+                --use-k-means=1 \
+		--sense=2 \
 		--learn-top-v=4000 \
 		--cbow=2 \
 		--size=300 \
