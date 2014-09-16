@@ -78,7 +78,7 @@ object MultiSenseEmbeddingBrowse {
       print("Enter word (EXIT to break) : ")
       var word = readLine.stripLineEnd
       val id  = getID(word)
-      print(word + " " + id)
+      println("Id in the vocab for the word " + word + " " + id)
       if (id == -1) {
         println("words not in vocab")
       } else 

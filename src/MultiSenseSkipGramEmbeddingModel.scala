@@ -71,13 +71,15 @@ class MultiSenseSkipGramEmbeddingModel(override val opts: EmbeddingOpts) extends
     val contextsEmbedding = new DenseTensor1(D, 0)    
     contexts.foreach(context => contextsEmbedding.+=(global_weights(context).value))
     var sense = 0
-    var maxdot = contextsEmbedding.dot( sense_weights(word)(0).value )
-    for (s <- 1 until S) {
-          val dot = contextsEmbedding.dot( sense_weights(word)(s).value )
-          if (dot > maxdot) {
-            maxdot = dot
-            sense = s
-          }
+    if (learnMultiVec(word)) {
+      var maxdot = contextsEmbedding.dot(sense_weights(word)(0).value)
+      for (s <- 1 until S) {
+        val dot = contextsEmbedding.dot(sense_weights(word)(s).value)
+        if (dot > maxdot) {
+          maxdot = dot
+          sense = s
+        }
+      }
     }
     sense
   }

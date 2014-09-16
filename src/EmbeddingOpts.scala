@@ -43,7 +43,7 @@ class EmbeddingOpts extends CmdOptions {
   val saveVocabFile           = new CmdOption("save-vocab", "", "STRING", "save vocab file")
   val loadVocabFile           = new CmdOption("load-vocab", "", "STRING", "load the vocab file")
   val corpus                  = new CmdOption("train", "", "STRING", "train file")
-  val output                  = new CmdOption("output", "", "STRING", "Use <file> to save the resulting word vectors")
+  val output                  = new CmdOption("output", "vectors-default", "STRING", "Use <file> to save the resulting word vectors")
   val binary                  = new CmdOption("binary", 0, "INT", "use 1 for storing .gz format and 0 for plain txt format. Both stores in ISO-8859-15 Encoding")
   //
   // Vocabulary related

@@ -101,8 +101,6 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
         }
         println("Done Loading the socher-multi-vocab-file")
      } else {
-        println("learn-top-v-from-opt " + opts.learnOnlyTop.value)
-        println("learn-window " + opts.window.value)
         val learnTopV = math.min(opts.learnOnlyTop.value, V)
         println("learn-top-v " + learnTopV)
         println("Learning multiple embeddings for the top most frequent " + learnTopV + " words. ")
