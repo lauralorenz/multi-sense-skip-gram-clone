@@ -38,7 +38,6 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
   val dpmeans                       = if (opts.model.value.equals("NP-MSSG"))          1 else 0
   val kmeans                        = if (opts.model.value.equals("MSSG-KMeans"))      1 else 0
   val maxout                        = if (opts.model.value.equals("MSSG-MaxOut"))      1 else 0
-  protected var learnTopV           = opts.learnOnlyTop.value
   protected var multiVocabFile      = opts.loadMultiSenseVocabFile.value
   
   // embedding data structures
@@ -59,8 +58,6 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
   protected var clusterActive: Array[Array[Int]] = null
   protected var ncluster: Array[Int] = null // holds the information for # of cluster
   protected var countSenses: Array[Int] = null
-  //protected var multiVocab : collection.mutable.HashSet[Int] = null
-  //protected var learnMultiVocab = 0
   protected var learnMultiVec: Array[Boolean] = null
 
   // Component-1
@@ -74,7 +71,6 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
       }
       while (corpusLineItr.hasNext) {
        val line = corpusLineItr.next
-        // addWordToVocab() will incr by count. TODO : make this also parallel ? but it is an one time process, next time use load-vocab option
        line.stripLineEnd.split(' ').foreach(word => vocab.addWordToVocab(word.toLowerCase())) 
       }
     }
@@ -93,10 +89,10 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
       println("Done Saving Vocab")
     }
 
-    learnMultiVec = Array.ofDim[Boolean](V)
+    learnMultiVec = Array.fill[Boolean](V)(false)
     // load a specific vocab-file for learning multiple-embeddings if learnTopV is 0
-    if (learnTopV == 0) {
-        println("Learning multiple embeddings by loading the socher-multi-vocab-file")
+    if (multiVocabFile.size != 0) {
+        println("Learning multiple embeddings only for those words in " + multiVocabFile)
         for (line <- io.Source.fromFile(multiVocabFile).getLines()) {
           val wrd = line.stripLineEnd
           val id  = vocab.getId(wrd)
@@ -105,11 +101,13 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
         }
         println("Done Loading the socher-multi-vocab-file")
      } else {
+        println("learn-top-v-from-opt " + opts.learnOnlyTop.value)
+        println("learn-window " + opts.window.value)
+        val learnTopV = math.min(opts.learnOnlyTop.value, V)
+        println("learn-top-v " + learnTopV)
         println("Learning multiple embeddings for the top most frequent " + learnTopV + " words. ")
         for (v <- 0 until learnTopV)
           learnMultiVec(v) = true
-        for (v <- learnTopV until V)
-          learnMultiVec(v) = false
      }
   }
 
@@ -183,7 +181,7 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
       case 1 => new OutputStreamWriter(new GZIPOutputStream(new BufferedOutputStream(new FileOutputStream(outputFile))), encoding)
     }
      out.write("%d %d %d %d\n".format(V, D, S, maxout))
-     out.flush();
+     out.flush()
      for (v <- 0 until V) {
        val C = if (learnMultiVec(v)) ncluster(v) else 1
        out.write(vocab.getWord(v) + " " + C)

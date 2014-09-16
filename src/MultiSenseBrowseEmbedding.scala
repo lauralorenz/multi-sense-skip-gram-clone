@@ -95,13 +95,11 @@ object MultiSenseEmbeddingBrowse {
              {
                   val embedding_out = weights(i)(s) // take only senses 
                  val score = TensorUtils.cosineDistance(embedding_in, embedding_out)
-                  //val score = embedding_in.dot(embedding_out)
                  if (pq.size < top) pq.enqueue(vocab(i) -> score)
                  else if (score > pq.head._2) 
                  { // if the score is greater the min, then add to the heap
                   pq.dequeue
                   val vocab_str = vocab(i) //+ (if (ncluster(i) > 1) "_" + s.toString else "");
-                  //pq.enqueue(vocab(i) -> score)
                   pq.enqueue(vocab_str -> score)
                  }
              }
@@ -110,7 +108,6 @@ object MultiSenseEmbeddingBrowse {
              if (is ==0) {
                 val embedding_out = weights(i)(0) // take only senses 
                  val score = TensorUtils.cosineDistance(embedding_in, embedding_out)
-                 // val score = embedding_in.dot(embedding_out)
                  if (i < top) pq.enqueue(vocab(i) -> score)
                  else if (score > pq.head._2) 
                  { // if the score is greater the min, then add to the heap
@@ -128,8 +125,6 @@ object MultiSenseEmbeddingBrowse {
           pq.dequeue
         }
         print("\t\t\t\t\t\tWord\t\tCosine Distance\n")
-        //if (is > 0 && senseUsingClusterMethod == 1) print("\t\t" + nclusterCount(id)(is-1))
-        //print("\n")
         arr.reverse.foreach(x => println("%50s\t\t%f".format(x._1, x._2)))
 
       }
@@ -160,32 +155,8 @@ object MultiSenseEmbeddingBrowse {
        println()
      }
   }
-  def playCos(): Unit = {
-    while (true) {
-      print("Enter the words or sentence to exit : ")
-      val words = readLine.stripLineEnd.split(' ').filter(word => getID(word) != -1)
-       val int_words = words.map(word => getID(word)).filter(id => id!= -1)
-      for (i <- 0 until words.size) {
-        for (j <- i+1 until words.size) {
-          println("\n\n")
-          println("Words- " + words(i) + " " + words(j))
-          val w1 = int_words(i);
-          val w2 = int_words(j);
-          println("Global- " + TensorUtils.cosineDistance( weights(w1)(0), weights(w2)(0)  ) )
-          for (s1 <- 1 until ncluster(w1)+1) {
-            for (s2 <- 1 until ncluster(w2)+1) {
-                val e1s1 = weights(w1)(s1);
-                val e2s2 = weights(w2)(s2);
-                println("i-" + i + " j-" + j + " s1-" + s1 + " s2-" + s2 + ": " + TensorUtils.cosineDistance(e1s1, e2s2) );
-            }
-          }
-            
-        }
-      }
-    }
-  }
-  def displayKNN(): Unit = 
-  {
+  
+  def displayKNN(): Unit = {
     while (true) {
       print("Enter the word : ")
       val in_word = readLine.stripLineEnd

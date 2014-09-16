@@ -27,8 +27,8 @@ class EmbeddingOpts extends CmdOptions {
   //
   // Clustering (DP means)
   //
+  val learnOnlyTop            = new CmdOption("learn-top-v", 4000, "INT", "use <double>")
   val createClusterLambda     = new CmdOption("create-cluster-lambda", 0.0, "DOUBLE", "use <int> to determine when to create the cluster") 
-  val learnOnlyTop            = new CmdOption("learn-top-v", 0, "INT", "use <doubele>. learn multiple-embeddings only for top-v words")
   val loadMultiSenseVocabFile = new CmdOption("load-multi-vocab", "", "STRING", "feed 6000 vocab that socher used to learn multiple embeddings")
   val debeugClusterInfo       = new CmdOption("debug-cluster-info", "", "STRING", "use <debug> info")  
   //
