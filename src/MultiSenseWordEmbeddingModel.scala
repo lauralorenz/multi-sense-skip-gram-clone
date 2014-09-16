@@ -35,16 +35,15 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
   private val encoding              = opts.encoding.value            // default is UTF-8
   // Sense/Cluster related
   protected val createClusterlambda = opts.createClusterLambda.value // when to create a new cluster
-  val dpmeans                       = if (opts.model.value.equals("NP-MSSG")) 1 else 0
-  val kmeans                        = if (opts.model.value.equals("MSSG")) 1 else 0
-  val simpleMaxPooling              = if (opts.model.value.equals("MSSG-MAX-POOLING")) 1 else 0
-  println("options- " + dpmeans + " " + kmeans + " " + simpleMaxPooling)
+  val dpmeans                       = if (opts.model.value.equals("NP-MSSG"))          1 else 0
+  val kmeans                        = if (opts.model.value.equals("MSSG-KMeans"))      1 else 0
+  val maxout                        = if (opts.model.value.equals("MSSG-MaxOut"))      1 else 0
   protected var learnTopV           = opts.learnOnlyTop.value
   protected var multiVocabFile      = opts.loadMultiSenseVocabFile.value
   
   // embedding data structures
   protected var vocab: VocabBuilder           = null
-  protected var trainer: HogWildTrainer   = null
+  protected var trainer: HogWildTrainer       = null
   protected var optimizer: AdaGradRDA         = null
   private var corpusLineItr: Iterator[String] = null
   private var train_words: Long               = 0
@@ -177,43 +176,13 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
   }
 
   // Component-3
-  def store_normal(): Unit = {
-    println("Now, storing into output... ")
-    val out = storeInBinary match {
-      case 0 => new java.io.PrintWriter(outputFile, encoding)
-      case 1 => new OutputStreamWriter(new GZIPOutputStream(new BufferedOutputStream(new FileOutputStream(outputFile))), encoding)
-    }
-    out.write("%d %d\n".format(V, D))
-    out.flush();
-    for (v <- 0 until V) {
-      val C = if (learnMultiVec(v)) S else 1
-      out.write(vocab.getWord(v) + " " + C)
-      //for (s <- 0 until C) out.write(" " + clusterCount(v)(s))
-      out.write("\n"); out.flush();
-      val global_embedding = global_weights(v).value
-      for (d <- 0 until D) {
-        out.write(global_embedding(d) + " ")
-      }
-      out.write("\n"); out.flush()
-      for (s <- 0 until C) {
-        val sense_embedding = sense_weights(v)(s).value
-        for (d <- 0 until D) {
-          out.write(sense_embedding(d) + " ")
-        }
-        out.write("\n"); out.flush()
-      }
-    }
-    out.close()
-    println("Done, Storing")
-  }
-  
   def store(): Unit = {
      println("Now, storing into output... ")
      val out = storeInBinary match {
       case 0 => new java.io.PrintWriter(outputFile, encoding)
       case 1 => new OutputStreamWriter(new GZIPOutputStream(new BufferedOutputStream(new FileOutputStream(outputFile))), encoding)
     }
-     out.write("%d %d\n".format(V, D))
+     out.write("%d %d %d %d\n".format(V, D, S, maxout))
      out.flush();
      for (v <- 0 until V) {
        val C = if (learnMultiVec(v)) ncluster(v) else 1
@@ -231,8 +200,8 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
            out.write(sense_embedding(d) + " ")
          }
          out.write("\n"); out.flush()
-        // there is no concept of cluster center for simple max-pooling method
-        if (kmeans == 1 || dpmeans == 1) {
+        // if maxout method is not used
+        if (maxout == 0) {
           val mu = clusterCenter(v)(s) / (1.0 * clusterCount(v)(s))
           for (d <- 0 until D) {
             out.write(mu(d) + " ")
@@ -244,57 +213,7 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
      out.close()
      println("Done, Storing")
   }
-  
-  def store_dpmeans(): Unit = {
-    println("Now, storing into output... ")
-     val out = storeInBinary match {
-      case 0 => new java.io.PrintWriter(outputFile, encoding)
-      case 1 => new OutputStreamWriter(new GZIPOutputStream(new BufferedOutputStream(new FileOutputStream(outputFile))), encoding)
-    }
-    val debugFile = opts.debeugClusterInfo.value
-    val debugOut = new PrintWriter(debugFile)
-    out.write("%d %d\n".format(V, D)); out.flush();
-    val countSenses = new Array[Int](S)
-    for (s <- 0 until S) countSenses(s) = 0
-    
-    for (v <- 0 until V) {
-       val C = if (learnMultiVec(v)) ncluster(v) else 1
-       out.write(vocab.getWord(v) + " " + C)
-       //for (s <- 0 until C) out.write(" " + clusterCount(v)(s))
-       out.write("\n"); out.flush();
-       val global_embedding = global_weights(v).value
-       for (d <- 0 until D) {
-         out.write(global_embedding(d) + " ")
-       }
-       out.write("\n"); out.flush()
-       for (s <- 0 until C) {
-         val sense_embedding = sense_weights(v)(s).value
-         for (d <- 0 until D) {
-           out.write(sense_embedding(d) + " ")
-         }
-         out.write("\n"); out.flush()
-         val mu =  clusterCenter(v)(s) / (1.0 * clusterCount(v)(s))
-         for (d <- 0 until D) {
-           out.write(mu(d) + " ")
-         }
-         out.write("\n");out.flush()
-       }
-       if (learnMultiVec(v)) {
-         debugOut.write(vocab.getWord(v) + ", " + ncluster(v))
-         for (s <- 0 until ncluster(v)) {
-           debugOut.write("," + clusterCount(v)(s))
-         }
-         debugOut.write("\n")
-         debugOut.flush()
-       }
-     }
-     out.close()
-     debugOut.close();
-     println("Sense Stat")
-     for (s <- 0 until S) println(s + " - " + countSenses(s))
-     println("Done, Storing")
-  }
-  
+   
   protected def workerThread(id: Int): Unit = {
     val fileLen = new File(corpus).length
     val skipBytes: Long = fileLen / threads * id // skip bytes. skipped bytes is done by other workers
@@ -320,8 +239,5 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
 
   // Override this function in your Embedding Model like SkipGramEmbedding or CBOWEmbedding
   protected def process(doc: String): Int
-  protected def logit(x : Double) = 1.0/(1.0 + math.exp(-x))
-  protected def prob(w1 : DenseTensor1, w2 : DenseTensor1) = TensorUtils.cosineDistance(w1, w2)
-  protected def getNSense(w: Int) = if (learnMultiVec(w)) S else 1
   
 }

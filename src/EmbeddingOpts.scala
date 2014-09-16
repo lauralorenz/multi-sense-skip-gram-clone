@@ -6,7 +6,7 @@ class EmbeddingOpts extends CmdOptions {
   //
   // Model
   //
-  val model                   = new CmdOption("model", "MSSG", "STRING", "use <string> name of the model")
+  val model                   = new CmdOption("model", "MSSG-KMeans", "STRING", "use <string> name of the model")
   //
   // Algorithm related
   //
@@ -27,9 +27,6 @@ class EmbeddingOpts extends CmdOptions {
   //
   // Clustering (DP means)
   //
-  val dpmeans                 = new CmdOption("use-dp-means", 0, "INT", "use <int> to do dp-means for sense-prediction")
-  val kmeans                  = new CmdOption("use-k-means", 0, "INT", "use <int> to do k-means for sense-prediction")
-  val maxpooling              = new CmdOption("use-max-pool", 0, "INT", "use <int> to do max-pooling for sense-prediction")
   val createClusterLambda     = new CmdOption("create-cluster-lambda", 0.0, "DOUBLE", "use <int> to determine when to create the cluster") 
   val learnOnlyTop            = new CmdOption("learn-top-v", 0, "INT", "use <doubele>. learn multiple-embeddings only for top-v words")
   val loadMultiSenseVocabFile = new CmdOption("load-multi-vocab", "", "STRING", "feed 6000 vocab that socher used to learn multiple embeddings")

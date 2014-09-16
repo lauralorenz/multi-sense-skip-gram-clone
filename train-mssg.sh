@@ -13,9 +13,9 @@ fi
 classpath=`cat CP.hack`
 wordvec_app="java -Xmx100g -cp ${classpath} WordVec"
 
-${wordvec_app}  --train text8 \
-		--output vectors_MSSG.gz \
-                --model MSSG  \
+${wordvec_app}  --train=text8 \
+		--output=vectors-MSSG.gz \
+                --model=MSSG-KMeans  \
 		--sense=2 \
 		--learn-top-v=4000 \
 		--size=300 \
