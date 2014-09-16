@@ -31,7 +31,7 @@ abstract class WordEmbeddingModel(val opts: EmbeddingOpts) extends Parameters {
   
   // data structures
   protected var vocab: VocabBuilder = null 
-  protected var trainer: LiteHogwildTrainer = null // modified version of factorie's hogwild trainer for speed by removing logging and other unimportant things. Expose processExample() instead of processExamples()
+  protected var trainer: HogWildTrainer = null // modified version of factorie's hogwild trainer for speed by removing logging and other unimportant things. Expose processExample() instead of processExamples()
   protected var optimizer: AdaGradRDA = null 
   
   var weights: Seq[Weights] = null // EMBEDDINGS . Will be initialized in learnEmbeddings() after buildVocab() is called first
@@ -75,7 +75,7 @@ abstract class WordEmbeddingModel(val opts: EmbeddingOpts) extends Parameters {
     optimizer = new AdaGradRDA(delta = adaGradDelta, rate = adaGradRate)
     weights = (0 until V).map(i => Weights(TensorUtils.setToRandom1(new DenseTensor1(D, 0)))) // initialized using wordvec random
     optimizer.initializeWeights(this.parameters)
-    trainer = new LiteHogwildTrainer(weightsSet = this.parameters, optimizer = optimizer, nThreads = threads, maxIterations = Int.MaxValue)
+    trainer = new HogWildTrainer(weightsSet = this.parameters, optimizer = optimizer, nThreads = threads, maxIterations = Int.MaxValue)
     val threadIds = (0 until threads).map(i => i)
     val fileLen = new File(corpus).length
     Threading.parForeach(threadIds, threads)(threadId => workerThread(threadId, fileLen))

@@ -4,6 +4,10 @@ import cc.factorie.util.CmdOptions
 class EmbeddingOpts extends CmdOptions {
 
   //
+  // Model
+  //
+  val model                   = new CmdOption("model", "MSSG", "STRING", "use <string> name of the model")
+  //
   // Algorithm related
   //
   val dimension               = new CmdOption("size", 200, "INT", "use <int> size of word vectors")
@@ -12,7 +16,7 @@ class EmbeddingOpts extends CmdOptions {
   val negative                = new CmdOption("negative", 1, "INT", "use <int> number of negative examples")
   val minCount                = new CmdOption("min-count", 5, "INT", "This will discard words that appear less than <int> times; default is 5")
   val ignoreStopWords         = new CmdOption("ignore-stopwords", 0, "INT", "use <int> to include or discard stopwords. Use 1 for discarding stopwords")
-  val cbow                    = new CmdOption("cbow", 0, "INT", "user cbow=1 for cbow and cbow=0 for skip-gram")
+  val cbow                    = new CmdOption("cbow", 2, "INT", "user cbow=1 for cbow and cbow=0 for skip-gram")
   val sample                  = new CmdOption("sample", 0.001, "DOUBLE", "use <double> subsampling")
   //
   // Multiple Embeddings Option 

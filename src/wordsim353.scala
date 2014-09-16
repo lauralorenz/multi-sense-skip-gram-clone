@@ -55,23 +55,8 @@ object wordsim353 {
          println("doing ws-353 like task")
          doWordSimTask(wordsimFile, outFilename)
       }
-      //doSpearmanCoffTest(outFilename)
-      
-   }
-   def doSpearmanCoffTest(outFilename: String): Unit = {
-         val lineItr = io.Source.fromFile(outFilename).getLines
-         var scores = new ArrayBuffer[Array[Double]]
-         for (line <- lineItr) {
-            var v = new ArrayBuffer[Double]()
-            scores.+=( line.stripLineEnd.split(',').drop(2).map(_.toDouble) ) // first two are the words
-         }
-         println(scores.size + " " + scores(0).size)
-         val a = scores.map(row => row(0)) // true similarity score
-         (1 until scores(0).size).foreach(i => {
-           val b = scores.map(row => row(i)) // our model similarity score 
-           println( stat.spearmanRankCoff(a, b)) //  Spearman Rank Coff
-         })
-   }
+  }
+  
    def doWordSimTask(filename : String, outFilename: String): Unit =  {
     var lineItr = io.Source.fromFile(filename).getLines()
     val out = new PrintWriter(outFilename)

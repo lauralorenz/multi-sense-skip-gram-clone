@@ -10,27 +10,25 @@ import java.io.FileInputStream
 object MSEmbeddingDistance {
 
   var threshold = 0
-  var vocab = Array[String]()
-  var weights = Array[Array[DenseTensor1]]()
-  var ncluster = Array[Int]()
+  var vocab         = Array[String]()
+  var weights       = Array[Array[DenseTensor1]]()
+  var ncluster      = Array[Int]()
   var nclusterCount = Array[Array[Int]]()
   var D = 0
   var V = 0
   var top = 25
   var S = 0
-  var dpmeans = 0
+  var senseUsingClusterMethod = 0
   def main(args: Array[String]) {
-    val inputFile = args(0)
-    S = args(1).toInt
-    top = args(2).toInt
-    dpmeans = args(4).toInt
-    println("Hello")
-    load(inputFile)
-    
-    if (args(3).toInt ==1 ) // WSD
-       displayKNN()
-    else
-       play() // KNN
+    val embeddingFile           = args(0)
+    S                       = args(1).toInt
+    top                     = args(2).toInt
+    senseUsingClusterMethod = args(4).toInt
+    load(embeddingFile)
+    if (args(3).toInt == 1) 
+       displayKNN()          // given the context words, hard pick the sense and show the K-NN
+    else 
+       play()                // given the word, show the K-NN of all the words
   }
 
   def load(embeddingsFile: String): Unit = {
@@ -60,7 +58,7 @@ object MSEmbeddingDistance {
         weights(v)(s) = new DenseTensor1(D, 0) // allocate the memory
         for (d <- 0 until D) weights(v)(s)(d) = line(d).toDouble
         weights(v)(s) /= weights(v)(s).twoNorm
-        if (s > 0 && dpmeans == 1) {
+        if (s > 0 && senseUsingClusterMethod == 1) {
             val lineSkip = lineItr.next.stripLineEnd.split(' ')
         }
       }
@@ -123,9 +121,9 @@ object MSEmbeddingDistance {
           i += 1
           pq.dequeue
         }
-        print("\t\t\t\t\t\tWord\t\tCosine Distance\t\t" + arr.size)
-        if (is > 0 && dpmeans == 1) print("\t\t" + nclusterCount(id)(is-1))
-        print("\n")
+        print("\t\t\t\t\t\tWord\t\tCosine Distance\n")
+        //if (is > 0 && senseUsingClusterMethod == 1) print("\t\t" + nclusterCount(id)(is-1))
+        //print("\n")
         arr.reverse.foreach(x => println("%50s\t\t%f".format(x._1, x._2)))
 
       }

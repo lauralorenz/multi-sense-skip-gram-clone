@@ -9,7 +9,7 @@ object WordVec {
     println("User Provided Charset for this project=" + opts.encoding.value)
     if (opts.cbow.value == 2) {
       println("Leanring Multiple Embeddings")
-      val wordEmbedding = new MSCBOWSkipGramEmbeddingModel(opts)
+      val wordEmbedding = new MultiSenseSkipGramEmbeddingModel(opts)
       val st1 = System.currentTimeMillis()
       wordEmbedding.buildVocab()
       val st = System.currentTimeMillis()
@@ -17,12 +17,13 @@ object WordVec {
       wordEmbedding.learnEmbeddings()
       val en = System.currentTimeMillis() - st
       println("time taken to learn embedding : " + en / 1000.0)
-      if (opts.dpmeans.value == 1)
+      wordEmbedding.store()
+     /* if (wordEmbedding.dpmeans == 1)
           wordEmbedding.store_dpmeans()
-      else if (opts.kmeans.value == 1)
-          wordEmbedding.store_kmeans()
+      else if (wordEmbedding.kmeans == 1)
+          wordEmbedding.store()
       else
-          wordEmbedding.store_normal()
+          wordEmbedding.store_normal() */
     }
     else 
     {
@@ -31,10 +32,10 @@ object WordVec {
       val st1 = System.currentTimeMillis()
       wordEmbedding.buildVocab()
       val st = System.currentTimeMillis()
-      println("time taken to build vocab : " + (st - st1) / 1000.0)
+      println("time taken (in seconds) to build vocab : " + (st - st1) / 1000.0)
       wordEmbedding.learnEmbeddings()
       val en = System.currentTimeMillis() - st
-      println("time taken to learn embedding : " + en / 1000.0)
+      println("time taken (in seconds) to learn embedding : " + en / 1000.0)
       wordEmbedding.store()
 
     }

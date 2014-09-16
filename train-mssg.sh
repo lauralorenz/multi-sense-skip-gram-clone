@@ -15,10 +15,9 @@ wordvec_app="java -Xmx100g -cp ${classpath} WordVec"
 
 ${wordvec_app}  --train text8 \
 		--output vectors_MSSG.gz \
-                --use-k-means=1 \
+                --model MSSG  \
 		--sense=2 \
 		--learn-top-v=4000 \
-		--cbow=2 \
 		--size=300 \
 		--window=5  \
 		--min-count=11 \

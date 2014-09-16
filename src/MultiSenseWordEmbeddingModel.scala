@@ -35,8 +35,10 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
   private val encoding              = opts.encoding.value            // default is UTF-8
   // Sense/Cluster related
   protected val createClusterlambda = opts.createClusterLambda.value // when to create a new cluster
-  val dpmeans                       = opts.dpmeans.value
-  val kmeans                        = opts.kmeans.value
+  val dpmeans                       = if (opts.model.value.equals("NP-MSSG")) 1 else 0
+  val kmeans                        = if (opts.model.value.equals("MSSG")) 1 else 0
+  val simpleMaxPooling              = if (opts.model.value.equals("MSSG-MAX-POOLING")) 1 else 0
+  println("options- " + dpmeans + " " + kmeans + " " + simpleMaxPooling)
   protected var learnTopV           = opts.learnOnlyTop.value
   protected var multiVocabFile      = opts.loadMultiSenseVocabFile.value
   
@@ -94,20 +96,17 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
 
     learnMultiVec = Array.ofDim[Boolean](V)
     // load a specific vocab-file for learning multiple-embeddings if learnTopV is 0
-    println("HELLO")
     if (learnTopV == 0) {
         println("Learning multiple embeddings by loading the socher-multi-vocab-file")
         for (line <- io.Source.fromFile(multiVocabFile).getLines()) {
           val wrd = line.stripLineEnd
           val id  = vocab.getId(wrd)
           assert(id != -1)
-          //multiVocab.+=(id)
           learnMultiVec(id) = true
         }
         println("Done Loading the socher-multi-vocab-file")
-        //learnMultiVocab = 1
      } else {
-        println("Learning multiple embeddings for " + learnTopV + " words")
+        println("Learning multiple embeddings for the top most frequent " + learnTopV + " words. ")
         for (v <- 0 until learnTopV)
           learnMultiVec(v) = true
         for (v <- learnTopV until V)
@@ -118,15 +117,7 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
   // Component-2
   def learnEmbeddings(): Unit = {
     println("Learning Embeddings")
-    optimizer     = new AdaGradRDA(delta = adaGradDelta, rate = adaGradRate)
-    // initialized to random (same manner as in word2vec)
-    sense_weights = (0 until V).map(i => (0 until S).map(j => Weights(TensorUtils.setToRandom1(new DenseTensor1(D, 0))))) 
-    if (!opts.bootVectors.value.equals(""))
-      load_weights()
-    else
-      global_weights = (0 until V).map(i => Weights(TensorUtils.setToRandom1(new DenseTensor1(D, 0)))) 
-    optimizer.initializeWeights(this.parameters)
-    trainer = new HogWildTrainer(weightsSet = this.parameters, optimizer = optimizer, nThreads = threads, maxIterations = Int.MaxValue)
+    
     clusterCount  = Array.ofDim[Int](V, S)
     clusterCenter = Array.ofDim[DenseTensor1](V, S)
     ncluster = Array.ofDim[Int](V)
@@ -141,6 +132,15 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
         clusterCenter(v)(s) = TensorUtils.setToRandom1(new DenseTensor1(D, 0))
       }
     }
+    optimizer     = new AdaGradRDA(delta = adaGradDelta, rate = adaGradRate)
+    // initialized to random (same manner as in word2vec)
+    sense_weights = (0 until V).map(v => (0 until ncluster(v)).map(s => Weights(TensorUtils.setToRandom1(new DenseTensor1(D, 0))))) 
+    if (!opts.bootVectors.value.equals(""))
+      load_weights()
+    else
+      global_weights = (0 until V).map(i => Weights(TensorUtils.setToRandom1(new DenseTensor1(D, 0)))) 
+    optimizer.initializeWeights(this.parameters)
+    trainer = new HogWildTrainer(weightsSet = this.parameters, optimizer = optimizer, nThreads = threads, maxIterations = Int.MaxValue)
       
     println("Initialized Parameters: ")
     println(println("Total memory available to JVM (bytes): " + 
@@ -207,7 +207,7 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
     println("Done, Storing")
   }
   
-  def store_kmeans(): Unit = {
+  def store(): Unit = {
      println("Now, storing into output... ")
      val out = storeInBinary match {
       case 0 => new java.io.PrintWriter(outputFile, encoding)
@@ -216,7 +216,7 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
      out.write("%d %d\n".format(V, D))
      out.flush();
      for (v <- 0 until V) {
-       val C = if (learnMultiVec(v)) S else 1
+       val C = if (learnMultiVec(v)) ncluster(v) else 1
        out.write(vocab.getWord(v) + " " + C)
        //for (s <- 0 until C) out.write(" " + clusterCount(v)(s))
        out.write("\n"); out.flush();
@@ -231,12 +231,15 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
            out.write(sense_embedding(d) + " ")
          }
          out.write("\n"); out.flush()
-         val mu =  clusterCenter(v)(s) / (1.0 * clusterCount(v)(s))
-         for (d <- 0 until D) {
-           out.write(mu(d) + " ")
-         }
-         out.write("\n"); out.flush()
-       }
+        // there is no concept of cluster center for simple max-pooling method
+        if (kmeans == 1 || dpmeans == 1) {
+          val mu = clusterCenter(v)(s) / (1.0 * clusterCount(v)(s))
+          for (d <- 0 until D) {
+            out.write(mu(d) + " ")
+          }
+          out.write("\n"); out.flush()
+        }
+      }
      }
      out.close()
      println("Done, Storing")
@@ -301,14 +304,14 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
     var ndoc = 0
     // worker amount
     val total_words_per_thread = train_words / threads 
-    while (lineItr.hasNext && work) {
-      // Design choice : should word count be computed here and just expose process(doc : String): Unit ?. 
+    while (lineItr.hasNext && work) { 
       word_count += process(lineItr.next) 
       ndoc += 1
-      // print the progress after processing 250 docs (or lines) for Thread-1
-      // Approximately reflects the progress for the entire system
+      // print the progress after processing 50 docs (or lines) for Thread-1
+      // Approximately reflects the progress for the entire system as all the threads are scheduled "fairly"
       if (id == 1 && ndoc % 50 == 0) {
-        println("Progress: " + word_count / total_words_per_thread.toDouble * 100 + " %")
+        val progress = math.min( (word_count/total_words_per_thread.toFloat) * 100, 100.0) 
+        println(f"Progress: $progress%2.2f" + " %")
       }
       // Once, word_count reaches this limit, ask worker to end
       if (word_count > total_words_per_thread) work = false 
@@ -319,5 +322,6 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
   protected def process(doc: String): Int
   protected def logit(x : Double) = 1.0/(1.0 + math.exp(-x))
   protected def prob(w1 : DenseTensor1, w2 : DenseTensor1) = TensorUtils.cosineDistance(w1, w2)
+  protected def getNSense(w: Int) = if (learnMultiVec(w)) S else 1
   
 }
