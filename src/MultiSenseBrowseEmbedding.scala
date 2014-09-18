@@ -124,8 +124,12 @@ object MultiSenseEmbeddingBrowse {
           i += 1
           pq.dequeue
         }
-        print("\t\t\t\t\t\tWord\t\tCosine Distance\n")
-        arr.reverse.foreach(x => println("%50s\t\t%f".format(x._1, x._2)))
+        print("\t\t\t\t\t\tWord\t\tCosine Distance")
+          if (is==0) {
+        print("(Global Embedding)") 
+          }
+          print("\n") 
+       arr.reverse.foreach(x => println("%50s\t\t%f".format(x._1, x._2)))
 
       }
         }
